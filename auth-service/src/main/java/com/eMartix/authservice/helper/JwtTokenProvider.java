@@ -27,7 +27,6 @@ public class JwtTokenProvider {
     private final JwtConfig jwtConfig;
     private final UserDetailsServiceImpl userDetailsService;
 
-
     public String generateToken(Authentication authentication) {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         Date now = new Date();

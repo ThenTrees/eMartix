@@ -1,12 +1,9 @@
 package com.eMartix.authservice.controller;
 
-import com.eMartix.authservice.dto.request.LoginRequestDto;
-import com.eMartix.authservice.dto.request.RegisterRequestDto;
-import com.eMartix.authservice.dto.request.VerifyOtpRequestDto;
+import com.eMartix.authservice.dto.request.*;
 import com.eMartix.authservice.dto.response.LoginResponse;
 import com.eMartix.authservice.dto.response.UserResponseDto;
 import com.eMartix.authservice.service.AuthenticationService;
-import com.eMartix.authservice.service.EmailService;
 import com.eMartix.commons.dtos.ApiResponse;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,22 +20,33 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class AuthenticationController {
     private final AuthenticationService authenticationService;
-    private final EmailService emailService;
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequestDto loginRequest, HttpServletResponse response) {
+    public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequestDto loginRequest, HttpServletResponse response) {
         LoginResponse loginResponse = authenticationService.authenticateUser(loginRequest, response);
-        return ResponseEntity.ok(loginResponse);
+        return ResponseEntity.ok(
+                ApiResponse.<LoginResponse>builder()
+                        .code(HttpStatus.OK.value())
+                        .success(true)
+                        .message("Login successful")
+                        .data(loginResponse)
+                        .build()
+        );
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse> register(@Valid @RequestBody RegisterRequestDto registerRequest) {
+    public ResponseEntity<ApiResponse<UserResponseDto>> register(@Valid @RequestBody RegisterRequestDto registerRequest) {
         UserResponseDto user = authenticationService.register(registerRequest);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ApiResponse(true, "User registered successfully", user));
+                .body(ApiResponse.<UserResponseDto>builder()
+                        .code(HttpStatus.CREATED.value())
+                        .success(true)
+                        .message("User registered successfully")
+                        .data(user)
+                        .build());
     }
 
     @GetMapping("/refresh")
-    public ResponseEntity<LoginResponse> refreshToken(HttpServletRequest request, HttpServletResponse response) {
+    public ResponseEntity<ApiResponse<LoginResponse>> refreshToken(HttpServletRequest request, HttpServletResponse response) {
         log.info("Refreshing token");
         // Lấy tất cả cookies từ request
         Cookie[] cookies = request.getCookies();
@@ -52,29 +60,71 @@ public class AuthenticationController {
                 }
             }
         }
-
-        return new ResponseEntity<>(authenticationService.createRefreshToken(refreshToken, response), HttpStatus.OK);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(authenticationService.createRefreshToken(refreshToken, response));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse> logout(HttpServletRequest request, HttpServletResponse response) {
-        log.info("POST /logout");
-
+    public ResponseEntity<ApiResponse<?>> logout(HttpServletRequest request, HttpServletResponse response) {
+        String logoutResponse = authenticationService.logout(request, response);
         return ResponseEntity.status(HttpStatus.NO_CONTENT)
-                .body(new ApiResponse(true, authenticationService.logout(request, response)));
+                .body(
+                    ApiResponse.builder()
+                            .code(HttpStatus.NO_CONTENT.value())
+                            .success(true)
+                            .message("Logout successful")
+                            .data(logoutResponse)
+                            .build()
+                );
     }
 
     @PostMapping("send-verification-otp")
-    public ResponseEntity<ApiResponse> sendVerificationEmail(@RequestBody VerifyOtpRequestDto requestDto) {
-        boolean rs =authenticationService.verifyEmail(requestDto);
-        return ResponseEntity.ok(new ApiResponse(rs, "Verification email sent successfully"));
+    public ResponseEntity<ApiResponse<?>> sendVerificationEmail(@RequestBody VerifyOtpRequestDto requestDto) {
+        boolean rs = authenticationService.verifyEmail(requestDto);
+        return ResponseEntity.ok(ApiResponse.builder()
+                .code(HttpStatus.OK.value())
+                .success(true)
+                .message("Verification email sent")
+                .data(rs)
+                .build());
     }
 
-    // forgot password
-//    @PostMapping("send-reset-password-otp")
-//    public ResponseEntity<ApiResponse> sendResetPasswordEmail(@RequestBody() String email) {
-//
-//
-//        return ResponseEntity.ok(new ApiResponse(, "Reset password email sent successfully"));
-//    }
+//     forgot password
+    @PostMapping("reset-password-request")
+    public ResponseEntity<ApiResponse<?>> sendResetPasswordEmail(@RequestBody() ForgotPasswordRequestDto request) {
+        authenticationService.sentRequireForgotPassword(request);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(ApiResponse.builder()
+                        .code(HttpStatus.OK.value())
+                        .success(true)
+                        .message("Pls check your email to confirm reset password")
+                        .data(null)
+                        .build());
+    }
+
+    @GetMapping("/resent-otp")
+    public ResponseEntity<ApiResponse<?>> resentOtp(@RequestBody ResentOtpRequestDto requestDto) {
+        authenticationService.resentOtp(requestDto);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(ApiResponse.builder()
+                        .code(HttpStatus.OK.value())
+                        .success(true)
+                        .message("Resent OTP successfully")
+                        .data(null)
+                        .build());
+    }
+
+    @GetMapping("/verify-link")
+    public ResponseEntity<ApiResponse<?>> verifyLink(@RequestParam("token") String token,
+                                                     @RequestParam("username") String username,
+                                                     @RequestParam("password") String password) {
+        authenticationService.verifyLink(username, token, password);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(ApiResponse.builder()
+                        .code(HttpStatus.OK.value())
+                        .success(true)
+                        .message("Verify link successfully")
+                        .data(null)
+                        .build());
+    }
 }

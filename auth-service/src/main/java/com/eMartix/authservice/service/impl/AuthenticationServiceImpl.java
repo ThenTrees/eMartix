@@ -1,15 +1,11 @@
 package com.eMartix.authservice.service.impl;
 
 import com.eMartix.authservice.common.UserStatus;
-import com.eMartix.authservice.dto.request.LoginRequestDto;
-import com.eMartix.authservice.dto.request.MailRequestDto;
-import com.eMartix.authservice.dto.request.RegisterRequestDto;
-import com.eMartix.authservice.dto.request.VerifyOtpRequestDto;
+import com.eMartix.authservice.dto.request.*;
 import com.eMartix.authservice.dto.response.LoginResponse;
 import com.eMartix.authservice.dto.response.UserResponseDto;
-import com.eMartix.authservice.exception.InvalidDataException;
 import com.eMartix.authservice.helper.JwtTokenProvider;
-import com.eMartix.authservice.messaging.producer.MailProducer;
+import com.eMartix.authservice.producer.MailProducer;
 import com.eMartix.authservice.model.Role;
 import com.eMartix.authservice.model.User;
 import com.eMartix.authservice.model.UserRole;
@@ -19,14 +15,14 @@ import com.eMartix.authservice.repository.UserRoleRepository;
 import com.eMartix.authservice.service.*;
 import com.eMartix.authservice.util.GenerateRandomOTP;
 import com.eMartix.commons.advice.ResourceNotFoundException;
+import com.eMartix.commons.dtos.ApiResponse;
 import io.jsonwebtoken.JwtException;
-import io.micrometer.common.util.StringUtils;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -38,9 +34,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -56,7 +52,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final UserService userService;
     private final TokenService tokenService;
     private final UserDetailsService userDetailsService;
-    private final EmailService emailService;
     private final MailProducer mailProducer;
 
     @Override
@@ -67,6 +62,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                         request.getPassword()
                 )
         );
+
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = tokenProvider.generateToken(authentication);
         String refreshToken = tokenProvider.generateRefreshToken(authentication);
@@ -76,12 +72,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         refreshTokenCookie.setPath("/");       // Gửi trong các yêu cầu tới toàn bộ ứng dụng
         response.addCookie(refreshTokenCookie);
         tokenService.storeTokenWithExpiry(authentication.getName(), jwt, refreshToken);
-        return new LoginResponse(jwt);
+
+        return LoginResponse.builder().accessToken(jwt).build();
+
     }
 
 
     @Override
-    public LoginResponse createRefreshToken(String token, HttpServletResponse response) {
+    public ApiResponse<LoginResponse> createRefreshToken(String token, HttpServletResponse response) {
         // phan giai claims -> lay sub
         String username = tokenProvider.getUsernameFromToken(token);
         // Kiểm tra Refresh Token trong Redis
@@ -98,44 +96,33 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             refreshTokenCookie.setPath("/");       // Gửi trong các yêu cầu tới toàn bộ ứng dụng
             response.addCookie(refreshTokenCookie);
             // Lưu Refresh Token mới vào Redis
-
             tokenService.storeTokenWithExpiry(username, newAccessToken, newRefreshToken);
-            return new LoginResponse(newAccessToken);
+            return ApiResponse.<LoginResponse>builder()
+                    .code(HttpStatus.CREATED.value())
+                    .message("Refresh token successfully")
+                    .success(true)
+                    .data(LoginResponse.builder().accessToken(newAccessToken).build())
+                    .build();
         }
         throw new JwtException("Refresh token is invalid");
     }
 
-    /**
-     * Refresh token
-     * @param request
-     * @return token response
-     */
-
-
-
-    private String getToken(HttpServletRequest request) {
-        String authorizationHeader = request.getHeader("Authorization");
-        if (StringUtils.isBlank(authorizationHeader)) {
-            throw new InvalidDataException("Token must be not blank");
-        }
-        if(authorizationHeader.startsWith("Bearer ")){
-            // Cắt "Bearer " để lấy token
-            return authorizationHeader.substring(7);
-        }else{
-            throw new InvalidDataException("Token is invalid");
-        }
-    }
 
     @Transactional
     public UserResponseDto register(RegisterRequestDto registerRequest) {
         // Check if username is taken
         if (userRepository.existsByUsername(registerRequest.getUsername())) {
-            throw new RuntimeException("Username is already taken!");
+            throw new IllegalArgumentException("Username is already taken!");
         }
 
         // Check if email is taken
         if (userRepository.existsByEmail(registerRequest.getEmail())) {
-            throw new RuntimeException("Email is already in use!");
+            throw new IllegalArgumentException("Email is already in use!");
+        }
+
+        // Check if email is taken
+        if (userRepository.existsByPhone(registerRequest.getPhone())) {
+            throw new IllegalArgumentException("phone is already in use!");
         }
 
         // Create new user
@@ -161,7 +148,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         for (String roleName : roleNames) {
             Role role = roleRepository.findByRoleName(roleName)
                     .orElseThrow(() -> new RuntimeException("Role not found: " + roleName));
-
             UserRole userRole = new UserRole();
             userRole.setUser(savedUser);
             userRole.setRole(role);
@@ -172,12 +158,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         // Gửi mail OTP qua RabbitMQ
         MailRequestDto mailRequest = new MailRequestDto(
                 savedUser.getEmail(),
-                "Welcome to eMartix",
-                otp
+                "Welcome to eMartix: Verify your email",
+                "Your OTP code is: " + otp
         );
-        mailProducer.sendOtpMail(mailRequest);
+        mailProducer.sendMail(mailRequest);
         tokenService.saveOtp(user.getEmail(), otp, TimeUnit.MINUTES.toSeconds(10)); // Lưu OTP sống 10 phút
-
         return userService.getUserDetails(savedUser.getUsername());
     }
 
@@ -208,19 +193,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 }
             }
         }
-        return "Logout success";
+        return "Logout successful";
     }
 
     @Override
     public boolean verifyEmail(VerifyOtpRequestDto requestDto) {
         // exits user
-        User user = userRepository.findByUsername(requestDto.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found with username: " + requestDto.getUsername()));
-
+        User user = userRepository.findByUsernameOrEmail(requestDto.getUsername(), requestDto.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("User", "username or email",requestDto.getUsername()));
         String storedOtp = tokenService.getOtp(user.getEmail());
         // check otp
         if (!storedOtp.equals(requestDto.getOtp())) {
-            throw new RuntimeException("Invalid OTP");
+            throw new IllegalArgumentException("Invalid OTP");
         }else{
             tokenService.deleteOtp(user.getEmail());
             user.setStatus(UserStatus.ACTIVE);
@@ -230,14 +214,55 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public void sentRequireForgotPassword(String email) {
-        log.info("User has email {} requires forgot password begin", email);
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+    public void sentRequireForgotPassword(ForgotPasswordRequestDto requestDto) {
+        if (requestDto.getNewPassword() == null || requestDto.getConfirmPassword() == null || !requestDto.getNewPassword().equals(requestDto.getConfirmPassword())) {
+            throw new IllegalArgumentException("Password and confirm password do not match");
+        }
+        String link = generateLink(requestDto.getUsernameOrEmail(), requestDto.getNewPassword());
+
+        // Gửi mail với link xác thực
+        MailRequestDto mailRequest = new MailRequestDto(
+                requestDto.getUsernameOrEmail(),
+                "Confirm your password reset request",
+                "Click this link to conform " + link);
+        mailProducer.sendMail(mailRequest);
+        log.info("Reset request password for account::: {}", requestDto.getUsernameOrEmail());
+    }
+
+    @Override
+    public void resentOtp(ResentOtpRequestDto requestDto) {
+        // exits user
+        User user = userRepository.findByUsernameOrEmail(requestDto.getUsernameOrEmail(), requestDto.getUsernameOrEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("User", "usename or email", requestDto.getUsernameOrEmail()));
 
         String otp = GenerateRandomOTP.generateOTP(6);
-        emailService.sendEmailProviderToken(email, "Provider new otp to verify code", otp);
-        userRepository.save(user);
-        log.info("User has email {} requires forgot password end", email);
+        // Gửi mail OTP qua RabbitMQ
+        MailRequestDto mailRequest = new MailRequestDto(
+                user.getEmail(),
+                "Welcome to eMartix: Verify your email",
+                "Your OTP code is: " + otp
+        );
+        mailProducer.sendMail(mailRequest);
+        tokenService.saveOtp(user.getEmail(), otp, TimeUnit.MINUTES.toSeconds(10)); // Lưu OTP sống 10 phút
+    }
+
+    @Override
+    public void verifyLink(String username,String token, String password) {
+        User user = userRepository.findByUsernameOrEmail(username, username).orElseThrow(
+                () -> new ResourceNotFoundException("User", "username || email", username)
+        );
+        if( user != null && token != null && tokenService.getTokenResetPassword(username).equals(token) ){
+            // Xóa token khỏi Redis
+            tokenService.deleteKey("resetPassword:"+username);
+            user.setPassword(passwordEncoder.encode(password));
+            userRepository.save(user);
+        }
+    }
+
+    private String generateLink(String username, String password) {
+        String token = UUID.randomUUID().toString();
+        tokenService.saveTokenResetPassword(username, token);
+        // Tạo link xác thực
+        return String.format("http://localhost:8080/api/v1/auth/verify-link?username=%s&token=%s&password=%s", username, token,password);
     }
 }

@@ -41,9 +41,9 @@ public class DatabaseSeeder implements CommandLineRunner {
 
     private void createPermissionsIfNotFound() {
         List<String> permissionNames = Arrays.asList(
-                "user:read", "user:write", "user:delete",
-                "role:read", "role:write", "role:delete",
-                "permission:read", "permission:write", "permission:delete"
+                "user:read", "user:write", "user:delete", // Quyền người dùng -> sau sẽ refactor lại để phù hợp với ecom
+                "role:read", "role:write", "role:delete", // Quyền vai trò
+                "permission:read", "permission:write", "permission:delete" // Quyền quyền hạn
         );
 
         for (String name : permissionNames) {

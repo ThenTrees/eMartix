@@ -36,10 +36,17 @@ public class WebSecurityConfig {
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(unauthorizedHandler)) // Xử lý lỗi Unauthorized
                 .authorizeHttpRequests(requests -> requests
-                        .requestMatchers("/login", "/register", "/refresh", "/send-verification-otp")
-                        .permitAll()
+                        .requestMatchers(
+                                "/login",
+                                "/register",
+                                "/refresh",
+                                "/send-verification-otp",
+                                "/reset-password-request",
+                                "/verify-link",
+                                "/resent-otp").permitAll() // Các API công khai
                         .anyRequest().authenticated()  // Các API khác yêu cầu auth
                 )
+                .logout(AbstractHttpConfigurer::disable)
                 .sessionManagement(manager -> manager
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         // Add our custom JWT security filter
