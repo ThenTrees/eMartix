@@ -1,18 +1,32 @@
+server:
+  port: 8084
+
 spring:
+  application:
+    name: NOTI-SERVICE
   datasource:
     url: jdbc:postgresql://localhost:5432/noti_db
     username: eMartix
     password: 12345
-
   jpa:
     hibernate:
       ddl-auto: update
+  mail:
+    host: smtp.mailtrap.io
+    port: 2525
+    username: c4f4a58defb84f
+    password: fa43c9c4f132ce
+    protocol: smtp
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+    test-connection: true
 
-application:
-  name: NOTI-SERVICE
-
-server:
-  port: 8084
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: eMartix
+    password: 12345
 
 # Actuators endpoints for Circuit Breaker
 management:
