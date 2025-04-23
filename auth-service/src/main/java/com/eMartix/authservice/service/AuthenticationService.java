@@ -1,10 +1,9 @@
 package com.eMartix.authservice.service;
 
-import com.eMartix.authservice.dto.request.LoginRequestDto;
-import com.eMartix.authservice.dto.request.RegisterRequestDto;
-import com.eMartix.authservice.dto.request.VerifyOtpRequestDto;
+import com.eMartix.authservice.dto.request.*;
 import com.eMartix.authservice.dto.response.LoginResponse;
 import com.eMartix.authservice.dto.response.UserResponseDto;
+import com.eMartix.commons.dtos.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -12,7 +11,7 @@ public interface AuthenticationService {
 
     LoginResponse authenticateUser(LoginRequestDto request, HttpServletResponse response);
 
-    LoginResponse createRefreshToken(String username,HttpServletResponse response);
+    ApiResponse<LoginResponse> createRefreshToken(String username,HttpServletResponse response);
 
     String logout(HttpServletRequest request, HttpServletResponse response);
 
@@ -20,5 +19,8 @@ public interface AuthenticationService {
 
     boolean verifyEmail(VerifyOtpRequestDto requestDto);
 
-    void sentRequireForgotPassword(String email);
+    void sentRequireForgotPassword(ForgotPasswordRequestDto requestDto);
+
+    void resentOtp(ResentOtpRequestDto username);
+    void verifyLink(String username, String token, String password);
 }

@@ -1,16 +1,17 @@
 package com.eMartix.noti_service.noti.service.dto.mapper;
 
 import com.eMartix.noti_service.noti.service.dto.model.NotiDto;
-import com.eMartix.noti_service.noti.service.dto.response.NotiResponseDto;
+import com.eMartix.noti_service.noti.service.dto.request.NotiRequestDto;
+import com.eMartix.noti_service.noti.service.dto.response.NotificationResponse;
 import com.eMartix.noti_service.noti.service.entity.Notification;
 import lombok.AllArgsConstructor;
 import org.mapstruct.Mapper;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Component;
 
-//@Component
+@Component
 @AllArgsConstructor
-@Mapper
+@Mapper(componentModel = "spring")
 public class NotiMapper {
     private ModelMapper mapper;
 
@@ -19,17 +20,17 @@ public class NotiMapper {
         return notiDto;
     }
 
-    public Notification mapToEntity(NotiDto notiDto){
-        Notification notification = mapper.map(notiDto, Notification.class);
+    public Notification mapToNotiEntity(NotiRequestDto requestDto){
+        Notification notification = mapper.map(requestDto, Notification.class);
         return notification;
     }
 
-    public NotiResponseDto mapToResponseDto(Notification notification){
-        NotiResponseDto notiResponseDto = mapper.map(notification, NotiResponseDto.class);
+    public NotificationResponse mapToResponseDto(Notification notification){
+        NotificationResponse notiResponseDto = mapper.map(notification, NotificationResponse.class);
         return notiResponseDto;
     }
 
-    public Notification mapToResponseEntity(NotiResponseDto notiResponseDto){
+    public Notification mapToResponseEntity(NotiRequestDto notiResponseDto){
         Notification notification = mapper.map(notiResponseDto, Notification.class);
         return notification;
     }

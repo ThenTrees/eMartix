@@ -5,7 +5,10 @@ public interface TokenService {
     String getAccessToken(String username);
     String getRefreshToken(String username);
     void deleteToken(String username);
-     void saveOtp(String email, String otp, long ttlMinutes);
-     String getOtp(String email);
-     void deleteOtp(String email);
+    void saveOtp(String email, String otp, long ttlMinutes);
+    String getOtp(String email);
+    void deleteOtp(String email);
+    void saveTokenResetPassword(String username,String token);
+    String getTokenResetPassword(String username);
+    void deleteKey(String key);
 }
