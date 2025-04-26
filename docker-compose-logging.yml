@@ -1,5 +1,7 @@
 version: '3.8'
 
+name: eMartix-logging
+
 services:
   eMartix-prometheus:
     container_name: eMartix-prometheus
