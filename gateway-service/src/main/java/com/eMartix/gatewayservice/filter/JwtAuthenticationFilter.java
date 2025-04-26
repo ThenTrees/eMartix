@@ -1,12 +1,17 @@
 package com.eMartix.gatewayservice.filter;
 
+import com.eMartix.gatewayservice.redis.RedisService;
 import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.annotation.Order;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -15,6 +20,8 @@ import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -22,6 +29,8 @@ import java.util.stream.Collectors;
 @Slf4j
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter implements WebFilter {
+
+    private final RedisService redisService;
 
     @Value("${jwt.secret}")
     private String SECRET_KEY;
@@ -35,21 +44,32 @@ public class JwtAuthenticationFilter implements WebFilter {
         String path = exchange.getRequest().getPath().toString();
 
         if (isAuthRequest(exchange)) {
-            return chain.filter(exchange);
+            // ✅ Bypass nhưng vẫn set một security context rỗng để Spring Security không chặn
+            SecurityContext context = SecurityContextHolder.createEmptyContext();
+            context.setAuthentication(new UsernamePasswordAuthenticationToken("anonymous", null, Collections.emptyList()));
+            return chain.filter(exchange)
+                    .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(context)));
         }
         String token = extractJwtFromRequest(exchange);
+
+
         if (token == null || !isValidToken(token)) {
             return Mono.error(new JwtException("Invalid or missing JWT token"));
         }
+
+        // check token is exist in redis
         Claims claims = extractClaims(token);
+        if (!redisService.checkExistToken(claims.getSubject(), token)){
+            return Mono.error(new JwtException("Token not found in redis"));
+        }
         List<SimpleGrantedAuthority> authorities = extractAuthoritiesFromClaims(claims);
         Authentication authentication = createAuthentication(claims, authorities);
         return setSecurityContextAndContinue(exchange, chain, authentication, token);
     }
 
     private boolean isAuthRequest(ServerWebExchange exchange) {
-        String uri = exchange.getRequest().getURI().toString();
-        return uri.contains("/api/v1/auth/login") || uri.contains("/api/v1/auth/register") || uri.contains("/api/v1/auth/refresh") || uri.contains("/api/v1/auth/send-verification-otp") ;
+        String path = exchange.getRequest().getPath().toString();
+        return WHITE_LIST.stream().anyMatch(path::contains);
     }
 
     private String extractJwtFromRequest(ServerWebExchange exchange) {
@@ -59,7 +79,7 @@ public class JwtAuthenticationFilter implements WebFilter {
 
     private boolean isValidToken(String token) {
         try {
-            Jws<Claims> claimsJws =  Jwts.parser().setSigningKey(SECRET_KEY).build().parseClaimsJws(token);
+            Jws<Claims> claimsJws =  Jwts.parser().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
             Claims claims = claimsJws.getPayload();
             // Kiểm tra thời gian hết hạn
             Date expiration = claims.getExpiration();
@@ -76,29 +96,17 @@ public class JwtAuthenticationFilter implements WebFilter {
 
     private Claims extractClaims(String token) {
         try {
-            return Jwts.parser()
-                    .setSigningKey(SECRET_KEY).build()
-                    .parseClaimsJws(token)
-                    .getBody();
+            return Jwts.parser().setSigningKey(getSigningKey()).build().parseClaimsJws(token).getPayload();
         } catch (JwtException e) {
             throw new JwtException("Invalid JWT token", e);
         }
     }
 
     private List<SimpleGrantedAuthority> extractAuthoritiesFromClaims(Claims claims) {
-        Object rolesObject = claims.get("roles");
-        if (rolesObject instanceof List) {
-            return ((List<?>) rolesObject).stream()
-                    .filter(item -> item instanceof Map)
-                    .map(item -> ((Map<?, ?>) item).get("authority"))
-                    .filter(Objects::nonNull)
-                    .map(Object::toString)
-                    .map(SimpleGrantedAuthority::new)
-                    .collect(Collectors.toList());
-        } else {
-            log.warn("Roles are not in the expected format");
-            return Collections.emptyList();
-        }
+        return Arrays.stream(claims.get("authorities").toString().split(","))
+                        .filter(auth -> !auth.trim().isEmpty())
+                        .map(SimpleGrantedAuthority::new)
+                        .collect(Collectors.toList());
     }
 
     private Authentication createAuthentication(Claims claims, List<SimpleGrantedAuthority> authorities) {
@@ -109,15 +117,34 @@ public class JwtAuthenticationFilter implements WebFilter {
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
         securityContext.setAuthentication(authentication);
         SecurityContextHolder.setContext(securityContext);
-        exchange.getRequest().mutate()
+
+        // Tạo request mới với các header bổ sung
+        ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
                 .header("Authorization", "Bearer " + token)
-                .header("X-API-KEY", X_API_KEY );
-        return exchange.getSession()
-                .flatMap(session -> {
-                    session.getAttributes().put("SPRING_SECURITY_CONTEXT", securityContext);
-                    return chain.filter(exchange);
-                });
+                .header("X-API-KEY", X_API_KEY)
+                .build();
+
+        // Tạo exchange mới với request đã mutate
+        ServerWebExchange mutatedExchange = exchange.mutate()
+                .request(mutatedRequest)
+                .build();
+
+        // Tiếp tục xử lý request với mutatedExchange (không dùng session nữa)
+        return chain.filter(mutatedExchange);
     }
 
-
+    private SecretKey getSigningKey() {
+        byte[] keyBytes = SECRET_KEY.getBytes(StandardCharsets.UTF_8);
+        return Keys.hmacShaKeyFor(keyBytes);
+    }
+    private static final List<String> WHITE_LIST = Arrays.asList(
+            "/api/v1/auth/login",
+            "/api/v1/auth/register",
+            "/api/v1/auth/refresh",
+            "/api/v1/auth/send-verification-otp",
+            "/api/v1/auth/resent-otp",
+            "/api/v1/auth/reset-password-request",
+            "/api/v1/auth/verify-link",
+            "/api/v1/products"
+    );
 }

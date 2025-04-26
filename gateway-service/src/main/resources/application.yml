@@ -39,14 +39,8 @@ spring:
             - Path=/api/v1/auth/**
           filters:
             - AddRequestHeader=X-API-KEY, ${gateway.x-api-key}
-            - RewritePath=/api/v1/auth/signup, /signup
-            - RewritePath=/api/v1/auth/login, /login
-            - RewritePath=/api/v1/auth/register, /register
-            - RewritePath=/api/v1/auth/refresh, /refresh
-            - RewritePath=/api/v1/auth/send-verification-otp, /send-verification-otp
-            - RewritePath=/api/v1/auth/users, /users
-            - RewritePath=/api/v1/auth/roles, /roles
-            - RewritePath=/api/v1/auth/permissions, /permissions
+            - RewritePath=/api/v1/auth/(?<segment>.*), /${segment}
+
         - id: NOTI-SERVICE
           uri: lb://NOTI-SERVICE
           predicates:
@@ -54,7 +48,7 @@ spring:
   data:
     redis:
       host: localhost
-      port: 6379
+      port: 6380
 #  security:
 #    oauth2:
 #      resourceserver:

@@ -1,4 +1,4 @@
-package com.eMartix.authservice.dto.request;
+package com.eMartix.noti_service.noti.service.dto.model;
 
 import lombok.*;
 

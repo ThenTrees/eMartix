@@ -42,8 +42,6 @@ public class TokenServiceImpl implements TokenService {
     }
 
     // Lưu token với thời gian hết hạn (ví dụ: 1 giờ)
-
-
     @Override
     public void saveOtp(String email, String otp, long ttlMinutes) {
         String key = OTP_PREFIX + email;
@@ -59,5 +57,21 @@ public class TokenServiceImpl implements TokenService {
     public void deleteOtp(String email) {
 //        redisTemplate.delete(OTP_PREFIX + email);
         redisConnection.sync().del(OTP_PREFIX + email);
+    }
+
+    @Override
+    public void saveTokenResetPassword(String username, String token) {
+        String key = "resetPassword:" + username;
+        redisConnection.sync().setex(key, TimeUnit.MINUTES.toSeconds(5), token);
+    }
+
+    @Override
+    public String getTokenResetPassword(String username) {
+        return redisConnection.sync().get("resetPassword:" + username);
+    }
+
+    @Override
+    public void deleteKey(String key) {
+        redisConnection.sync().del(key);
     }
 }

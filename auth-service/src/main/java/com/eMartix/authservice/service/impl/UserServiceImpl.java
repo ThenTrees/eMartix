@@ -2,12 +2,15 @@ package com.eMartix.authservice.service.impl;
 
 import com.eMartix.authservice.common.UserStatus;
 import com.eMartix.authservice.dto.request.ChangePasswordRequestDto;
+import com.eMartix.authservice.dto.request.ForgotPasswordRequestDto;
 import com.eMartix.authservice.dto.request.UpdateProfileRequestDto;
 import com.eMartix.authservice.dto.response.UserResponseDto;
+import com.eMartix.authservice.mapper.UserMapper;
 import com.eMartix.authservice.model.User;
 import com.eMartix.authservice.repository.RolePermissionRepository;
 import com.eMartix.authservice.repository.UserRepository;
 import com.eMartix.authservice.repository.UserRoleRepository;
+import com.eMartix.authservice.service.TokenService;
 import com.eMartix.authservice.service.UserService;
 import com.eMartix.commons.advice.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -19,15 +22,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
-    private final UserRoleRepository userRoleRepository;
     private final RolePermissionRepository rolePermissionRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TokenService tokenService;
+    private final UserMapper userMapper;
 
     @Transactional(readOnly = true)
     public UserResponseDto getUserDetails(String usernameOrEmail) {
@@ -103,7 +108,7 @@ public class UserServiceImpl implements UserService {
 
     @Transactional
     @Override
-    public void updateProfile(Long userId, UpdateProfileRequestDto updateProfileRequestDto) {
+    public UserResponseDto updateProfile(Long userId, UpdateProfileRequestDto updateProfileRequestDto) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
@@ -126,7 +131,7 @@ public class UserServiceImpl implements UserService {
         if(updateProfileRequestDto.getPhone() != null) {
             user.setPhone(updateProfileRequestDto.getPhone());
         }
-
-        userRepository.save(user);
+        return userMapper.toUserResponseDto(userRepository.save(user));
     }
+
 }

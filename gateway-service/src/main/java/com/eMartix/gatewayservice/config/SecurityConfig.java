@@ -23,7 +23,7 @@ public class SecurityConfig {
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) throws Exception {
         http.csrf(csrfSpec -> csrfSpec.disable())
                 .authorizeExchange(authorizeExchangeSpec -> authorizeExchangeSpec
-                        .pathMatchers("/api/v1/auth/**").permitAll()
+//                        .pathMatchers("/api/v1/auth/**").permitAll()
                         .pathMatchers("/actuator/health").permitAll()
                         .anyExchange().authenticated()
                 )
@@ -33,5 +33,4 @@ public class SecurityConfig {
                 .addFilterAfter(rateLimitingFilter, SecurityWebFiltersOrder.AUTHENTICATION);
         return http.build();
     }
-
 }

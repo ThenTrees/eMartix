@@ -26,21 +26,15 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     private final UserRepository userRepository;
     private final RolePermissionRepository rolePermissionRepository;
 
-//    UserDetailsServiceImpl(UserRepository userRepository, RolePermissionRepository rolePermissionRepository) {
-//        this.userRepository = userRepository;
-//        this.rolePermissionRepository = rolePermissionRepository;
-//    }
-
     @Primary
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String usernameOrEmail) throws UsernameNotFoundException {
-        return  userRepository.findByUsername(usernameOrEmail)
+        return  userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail)
                 .orElseGet(() -> userRepository.findByEmail(usernameOrEmail)
-                        .orElseThrow(() -> new UsernameNotFoundException("User not found with username or email: " + usernameOrEmail)));
+                        .orElseThrow(() -> new UsernameNotFoundException("User or Email not found with username or email: " + usernameOrEmail)));
 
     }
-
 
     private Collection<GrantedAuthority> getAuthorities(User user) {
         List<GrantedAuthority> authorities = new ArrayList<>();

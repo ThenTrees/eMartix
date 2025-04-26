@@ -13,5 +13,5 @@ public interface UserService {
     void deleteUser(Long id);
     UserResponseDto updateUserStatus(Long id, UserStatus status);
     void changePassword(String username, ChangePasswordRequestDto changePasswordRequestDto);
-    void updateProfile(Long userId,UpdateProfileRequestDto updateProfileRequestDto);
+    UserResponseDto updateProfile(Long userId,UpdateProfileRequestDto updateProfileRequestDto);
 }

@@ -10,14 +10,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ApiResponse {
+public class ApiResponse<T> {
     private boolean success;
+    private int code;
     private String message;
-    @JsonIgnore
-    private Object data;
-
-    public ApiResponse(boolean success, String message) {
-        this.success = success;
-        this.message = message;
-    }
+    private T response;
 }
