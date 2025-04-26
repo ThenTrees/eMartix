@@ -1,9 +1,7 @@
 package com.eMartix.authservice.controller;
 
 
-import com.eMartix.authservice.common.UserStatus;
 import com.eMartix.authservice.dto.request.ChangePasswordRequestDto;
-import com.eMartix.authservice.dto.request.ForgotPasswordRequestDto;
 import com.eMartix.authservice.dto.request.UpdateProfileRequestDto;
 import com.eMartix.authservice.dto.response.ListUserResponse;
 import com.eMartix.authservice.dto.response.UserResponseDto;
@@ -22,7 +20,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -39,11 +36,12 @@ public class UserController {
                 .success(true)
                 .code(HttpStatus.OK.value())
                 .message("Get all users successfully")
-                .data(ListUserResponse.builder()
-                        .users(userService.getAllUsers())
-                        .build())
+                .response(ListUserResponse.builder()
+                    .users(userService.getAllUsers())
+                    .build())
                 .build());
     }
+
 
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserResponseDto>> getCurrentUser() {
@@ -54,7 +52,7 @@ public class UserController {
                             .code(HttpStatus.UNAUTHORIZED.value())
                             .success(false)
                             .message("Unauthorized")
-                            .data(null)
+                            .response(null)
                             .build()
             );
         }
@@ -63,7 +61,7 @@ public class UserController {
                         .code(HttpStatus.OK.value())
                         .success(true)
                         .message("Get current user successfully")
-                        .data(userService.getUserDetails(authentication.getName()))
+                        .response(userService.getUserDetails(authentication.getName()))
                         .build()
         );
     }
@@ -76,7 +74,7 @@ public class UserController {
                 ApiResponse.builder()
                         .success(true)
                         .message("User deleted successfully")
-                        .data(null)
+                        .response(null)
                         .code(HttpStatus.NO_CONTENT.value())
                         .build()
         );
@@ -90,7 +88,7 @@ public class UserController {
                         .success(true)
                         .code(HttpStatus.OK.value())
                         .message("Get all roles successfully")
-                        .data(roleService.getAllRoles())
+                        .response(roleService.getAllRoles())
                         .build()
         );
     }
@@ -104,7 +102,7 @@ public class UserController {
                         .success(true)
                         .code(HttpStatus.CREATED.value())
                         .message("Role created successfully")
-                        .data(createdRole)
+                        .response(createdRole)
                         .build()
         );
     }
@@ -117,7 +115,7 @@ public class UserController {
                         .success(true)
                         .code(HttpStatus.OK.value())
                         .message("Get all permissions successfully")
-                        .data(roleService.getAllPermissions())
+                        .response(roleService.getAllPermissions())
                         .build()
         );
     }
@@ -131,7 +129,7 @@ public class UserController {
                         .success(true)
                         .code(HttpStatus.CREATED.value())
                         .message("Permission created successfully")
-                        .data(createdPermission)
+                        .response(createdPermission)
                         .build()
         );
     }
@@ -144,7 +142,7 @@ public class UserController {
                         .success(true)
                         .code(HttpStatus.OK.value())
                         .message("Get role permissions successfully")
-                        .data(roleService.getRolePermissions(roleId))
+                        .response(roleService.getRolePermissions(roleId))
                         .build()
         );
     }
@@ -159,7 +157,7 @@ public class UserController {
                 ApiResponse.builder()
                         .success(true)
                         .message("Permission added to role successfully")
-                        .data(null)
+                        .response(null)
                         .code(HttpStatus.OK.value())
                         .build()
         );
@@ -175,7 +173,7 @@ public class UserController {
                 ApiResponse.builder()
                         .success(true)
                         .message("Permission removed from role successfully")
-                        .data(null)
+                        .response(null)
                         .code(HttpStatus.OK.value())
                         .build()
         );
@@ -194,7 +192,7 @@ public class UserController {
                         .success(true)
                         .code(HttpStatus.OK.value())
                         .message("Password changed successfully")
-                        .data(userService.getUserDetails(username))
+                        .response(userService.getUserDetails(username))
                         .build()
         );
     }
@@ -211,7 +209,7 @@ public class UserController {
                         .success(true)
                         .code(HttpStatus.OK.value())
                         .message("Profile updated successfully")
-                        .data(userService.getUserDetails(user.getUsername()))
+                        .response(userService.getUserDetails(user.getUsername()))
                         .build()
         );
     }
