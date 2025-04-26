@@ -28,7 +28,7 @@ public class AuthenticationController {
                         .code(HttpStatus.OK.value())
                         .success(true)
                         .message("Login successful")
-                        .data(loginResponse)
+                        .response(loginResponse)
                         .build()
         );
     }
@@ -41,7 +41,7 @@ public class AuthenticationController {
                         .code(HttpStatus.CREATED.value())
                         .success(true)
                         .message("User registered successfully")
-                        .data(user)
+                        .response(user)
                         .build());
     }
 
@@ -73,7 +73,7 @@ public class AuthenticationController {
                             .code(HttpStatus.NO_CONTENT.value())
                             .success(true)
                             .message("Logout successful")
-                            .data(logoutResponse)
+                            .response(logoutResponse)
                             .build()
                 );
     }
@@ -85,7 +85,7 @@ public class AuthenticationController {
                 .code(HttpStatus.OK.value())
                 .success(true)
                 .message("Verification email sent")
-                .data(rs)
+                .response(rs)
                 .build());
     }
 
@@ -98,7 +98,7 @@ public class AuthenticationController {
                         .code(HttpStatus.OK.value())
                         .success(true)
                         .message("Pls check your email to confirm reset password")
-                        .data(null)
+                        .response(null)
                         .build());
     }
 
@@ -110,7 +110,7 @@ public class AuthenticationController {
                         .code(HttpStatus.OK.value())
                         .success(true)
                         .message("Resent OTP successfully")
-                        .data(null)
+                        .response(null)
                         .build());
     }
 
@@ -124,7 +124,7 @@ public class AuthenticationController {
                         .code(HttpStatus.OK.value())
                         .success(true)
                         .message("Verify link successfully")
-                        .data(null)
+                        .response(null)
                         .build());
     }
 }

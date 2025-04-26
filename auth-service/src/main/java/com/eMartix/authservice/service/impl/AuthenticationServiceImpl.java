@@ -73,7 +73,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         response.addCookie(refreshTokenCookie);
         tokenService.storeTokenWithExpiry(authentication.getName(), jwt, refreshToken);
 
-        return LoginResponse.builder().accessToken(jwt).build();
+        return LoginResponse.builder().accessToken(jwt).refreshToken(refreshToken).build();
 
     }
 
@@ -101,7 +101,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                     .code(HttpStatus.CREATED.value())
                     .message("Refresh token successfully")
                     .success(true)
-                    .data(LoginResponse.builder().accessToken(newAccessToken).build())
+                    .response(LoginResponse.builder().accessToken(newAccessToken).refreshToken(newRefreshToken).build())
                     .build();
         }
         throw new JwtException("Refresh token is invalid");

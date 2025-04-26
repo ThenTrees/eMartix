@@ -6,10 +6,12 @@ import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -42,7 +44,11 @@ public class JwtAuthenticationFilter implements WebFilter {
         String path = exchange.getRequest().getPath().toString();
 
         if (isAuthRequest(exchange)) {
-            return chain.filter(exchange);
+            // ✅ Bypass nhưng vẫn set một security context rỗng để Spring Security không chặn
+            SecurityContext context = SecurityContextHolder.createEmptyContext();
+            context.setAuthentication(new UsernamePasswordAuthenticationToken("anonymous", null, Collections.emptyList()));
+            return chain.filter(exchange)
+                    .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(context)));
         }
         String token = extractJwtFromRequest(exchange);
 
@@ -62,14 +68,8 @@ public class JwtAuthenticationFilter implements WebFilter {
     }
 
     private boolean isAuthRequest(ServerWebExchange exchange) {
-        String uri = exchange.getRequest().getURI().toString();
-        return uri.contains("/api/v1/auth/login")
-                || uri.contains("/api/v1/auth/register")
-                || uri.contains("/api/v1/auth/refresh")
-                || uri.contains("/api/v1/auth/send-verification-otp")
-                || uri.contains("/api/v1/auth/resent-otp")
-                || uri.contains("/api/v1/auth/reset-password-request")
-                || uri.contains("/api/v1/auth/verify-link");
+        String path = exchange.getRequest().getPath().toString();
+        return WHITE_LIST.stream().anyMatch(path::contains);
     }
 
     private String extractJwtFromRequest(ServerWebExchange exchange) {
@@ -137,5 +137,14 @@ public class JwtAuthenticationFilter implements WebFilter {
         byte[] keyBytes = SECRET_KEY.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
     }
-
+    private static final List<String> WHITE_LIST = Arrays.asList(
+            "/api/v1/auth/login",
+            "/api/v1/auth/register",
+            "/api/v1/auth/refresh",
+            "/api/v1/auth/send-verification-otp",
+            "/api/v1/auth/resent-otp",
+            "/api/v1/auth/reset-password-request",
+            "/api/v1/auth/verify-link",
+            "/api/v1/products"
+    );
 }
