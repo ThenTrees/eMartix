@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  eMartix-prometheus:
+    container_name: eMartix-prometheus
+    image: prom/prometheus:latest
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - eMartix-network
+
+  eMartix-grafana:
+    container_name: eMartix-grafana
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana  # Save dashboard, user config
+    networks:
+      - eMartix-network
+
+  eMartix-zipkin:
+    container_name: eMartix-zipkin
+    image: openzipkin/zipkin:latest
+    restart: unless-stopped
+    ports:
+      - "9411:9411"
+    networks:
+      - eMartix-network
+
+volumes:
+  grafana-storage:
+
+networks:
+  eMartix-network:
+    driver: bridge

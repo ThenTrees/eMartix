@@ -53,7 +53,7 @@ services:
       MYSQL_USER: eMartix
       MYSQL_PASSWORD: 12345
     volumes:
-      - mysql:/var/lib/mysql/data
+      - mysql:/var/lib/mysql
     networks:
       - eMartix-network
 
@@ -64,10 +64,9 @@ volumes:
     driver: local
   redis:
     driver: local
-  redis-data:
+  mysql:
     driver: local
 
 networks:
   eMartix-network:
-#    external: true
     driver: bridge
