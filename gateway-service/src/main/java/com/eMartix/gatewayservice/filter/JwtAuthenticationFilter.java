@@ -145,6 +145,14 @@ public class JwtAuthenticationFilter implements WebFilter {
             "/api/v1/auth/resent-otp",
             "/api/v1/auth/reset-password-request",
             "/api/v1/auth/verify-link",
-            "/api/v1/products"
+            // product
+            "/api/v1/products",
+            "/api/v1/products/{productId}",
+            "/api/v1/products/search",
+            // categories
+            "/api/v1/categories",
+            "/api/v1/categories/{categoryId}",
+            "/api/v1/categories/search"
+
     );
 }

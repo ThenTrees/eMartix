@@ -9,6 +9,7 @@ import org.springframework.security.config.annotation.web.reactive.EnableWebFlux
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.web.reactive.config.CorsRegistry;
 import org.springframework.web.server.WebFilter;
 
 
@@ -18,7 +19,6 @@ import org.springframework.web.server.WebFilter;
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final RateLimitingFilter rateLimitingFilter;
-
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) throws Exception {
         http.csrf(csrfSpec -> csrfSpec.disable())
@@ -33,4 +33,5 @@ public class SecurityConfig {
                 .addFilterAfter(rateLimitingFilter, SecurityWebFiltersOrder.AUTHENTICATION);
         return http.build();
     }
+
 }
