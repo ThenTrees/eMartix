@@ -1,11 +1,9 @@
 package com.eMartix.noti_service.noti.service.entity;
 
-import com.eMartix.commons.id.GeneratedID;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 @Getter
 @Setter
 @AllArgsConstructor
@@ -15,7 +13,7 @@ import java.util.Date;
 @Table(name = "notifications")
 public class Notification {
     @Id
-    @GeneratedID
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Long id;
     private String title;
