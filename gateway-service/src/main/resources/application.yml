@@ -1,3 +1,7 @@
+server:
+  port: 8080
+  forward-headers-strategy: framework
+
 spring:
   application:
     name: GATEWAY-SERVICE
@@ -10,65 +14,27 @@ spring:
       max-in-memory-size: 100MB
       max-disk-usage-per-part: 100MB
       max-parts: 1
-#  profiles:
-#    active: dev
   config:
     import: optional:configserver:http://localhost:8888
   cloud:
+    circuitbreaker:
+      resilience4j:
+        enabled: true
     gateway:
       discovery:
         locator:
-          enabled: true # tự động định tuyến dựa vào serviceId
-          lower-case-service-id: true # chuyển đổi serviceId thành chữ thường
-      routes:
-        - id: PRODUCT-SERVICE
-          uri: lb://PRODUCT-SERVICE
-          predicates:
-            - Path=/api/v1/products/**, /api/v1/categories/**
-        - id: CART-SERVICE
-          uri: lb://CART-SERVICE
-          predicates:
-            - Path=/api/v1/carts/**
-        - id: ORDER-SERVICE
-          uri: lb://ORDER-SERVICE
-          predicates:
-            - Path=/api/v1/order/**
-        - id: AUTH-SERVICE
-          uri: lb://AUTH-SERVICE
-          predicates:
-            - Path=/api/v1/auth/**
-          filters:
-            - AddRequestHeader=X-API-KEY, ${gateway.x-api-key}
-            - RewritePath=/api/v1/auth/(?<segment>.*), /${segment}
-
-        - id: NOTI-SERVICE
-          uri: lb://NOTI-SERVICE
-          predicates:
-            - Path=/api/v1/notifications/**
+          enabled: false # bạn dùng RouteLocator, nên phải để false
+          lower-case-service-id: true
   data:
     redis:
       host: localhost
       port: 6380
-#  security:
-#    oauth2:
-#      resourceserver:
-#        jwt:
-#          issuer-uri: http://localhost:8181
-jwt:
-  secret: 4f9c1f5e70ee039c9f6fab00b56531e8c0e97b207f96c2bcc7177a7cba528a138a02985e1c10f73c7220e133351a19f8e6f242fd155ebc08c5c9ac7693d5007d
-gateway:
-  x-api-key: api-key
-
-
-server:
-  port: 8080
-  forward-headers-strategy: framework
 
 eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
   instance:
-    client:
-      serverUrl:
-        defaultZone: http://localhost:8761/eureka/
     hostname: localhost
 
 management:
@@ -81,18 +47,28 @@ management:
       show-details: always
     prometheus:
       enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
   tracing:
     sampling:
       probability: 1.0
+
+jwt:
+  secret: 4f9c1f5e70ee039c9f6fab00b56531e8c0e97b207f96c2bcc7177a7cba528a138a02985e1c10f73c7220e133351a19f8e6f242fd155ebc08c5c9ac7693d5007d
+
+gateway:
+  x-api-key: api-key
 
 logging:
   pattern:
     level: '%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]'
   level:
     org.springframework.web: DEBUG
-    org.springframework.security: trace
-    web: trace
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+    org.springframework.security: TRACE
+    web: TRACE
+
+# Nếu app này không dùng database, thì disable datasource autoconfig
+spring.autoconfigure.exclude:
+  - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+  - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration

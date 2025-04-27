@@ -2,11 +2,9 @@ package com.eMartix.gatewayservice.filter;
 
 import com.eMartix.gatewayservice.redis.RedisService;
 import io.jsonwebtoken.*;
-import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.annotation.Order;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -20,8 +18,6 @@ import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -44,7 +40,7 @@ public class JwtAuthenticationFilter implements WebFilter {
         String path = exchange.getRequest().getPath().toString();
 
         if (isAuthRequest(exchange)) {
-            // ✅ Bypass nhưng vẫn set một security context rỗng để Spring Security không chặn
+            // Bypass nhưng vẫn set một security context rỗng để Spring Security không chặn
             SecurityContext context = SecurityContextHolder.createEmptyContext();
             context.setAuthentication(new UsernamePasswordAuthenticationToken("anonymous", null, Collections.emptyList()));
             return chain.filter(exchange)
@@ -79,7 +75,7 @@ public class JwtAuthenticationFilter implements WebFilter {
 
     private boolean isValidToken(String token) {
         try {
-            Jws<Claims> claimsJws =  Jwts.parser().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
+            Jws<Claims> claimsJws =  Jwts.parser().setSigningKey(SECRET_KEY).build().parseClaimsJws(token);
             Claims claims = claimsJws.getPayload();
             // Kiểm tra thời gian hết hạn
             Date expiration = claims.getExpiration();
@@ -96,9 +92,10 @@ public class JwtAuthenticationFilter implements WebFilter {
 
     private Claims extractClaims(String token) {
         try {
-            return Jwts.parser().setSigningKey(getSigningKey()).build().parseClaimsJws(token).getPayload();
-        } catch (JwtException e) {
-            throw new JwtException("Invalid JWT token", e);
+            return Jwts.parser().setSigningKey(SECRET_KEY).build().parseClaimsJws(token).getBody();
+        } catch (Exception e) {
+            log.error("Error parsing token: {}", e.getMessage());
+            throw new JwtException("Invalid token", e);
         }
     }
 
@@ -129,14 +126,14 @@ public class JwtAuthenticationFilter implements WebFilter {
                 .request(mutatedRequest)
                 .build();
 
-        // Tiếp tục xử lý request với mutatedExchange (không dùng session nữa)
-        return chain.filter(mutatedExchange);
+        return chain.filter(mutatedExchange)
+                .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(securityContext)));
+
+
+        // Tiếp tục xử lý request với mutatedExchange
+//        return chain.filter(mutatedExchange);
     }
 
-    private SecretKey getSigningKey() {
-        byte[] keyBytes = SECRET_KEY.getBytes(StandardCharsets.UTF_8);
-        return Keys.hmacShaKeyFor(keyBytes);
-    }
     private static final List<String> WHITE_LIST = Arrays.asList(
             "/api/v1/auth/login",
             "/api/v1/auth/register",
@@ -153,6 +150,5 @@ public class JwtAuthenticationFilter implements WebFilter {
             "/api/v1/categories",
             "/api/v1/categories/{categoryId}",
             "/api/v1/categories/search"
-
     );
 }
