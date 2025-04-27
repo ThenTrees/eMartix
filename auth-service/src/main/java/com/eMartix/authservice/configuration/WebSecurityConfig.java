@@ -38,15 +38,18 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers(
                                 "/login",
+                                "/logout",
                                 "/register",
                                 "/refresh",
                                 "/send-verification-otp",
                                 "/reset-password-request",
                                 "/verify-link",
-                                "/resent-otp").permitAll() // Các API công khai
-                        .anyRequest().authenticated()  // Các API khác yêu cầu auth
+                                "/resent-otp",
+                                "/actuator/health",
+                                "/actuator/info").permitAll() // Các API công khai
+                        .anyRequest().permitAll()  // Các API khác yêu cầu auth
                 )
-                .logout(AbstractHttpConfigurer::disable)
+                .logout(l->l.disable())
                 .sessionManagement(manager -> manager
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         // Add our custom JWT security filter

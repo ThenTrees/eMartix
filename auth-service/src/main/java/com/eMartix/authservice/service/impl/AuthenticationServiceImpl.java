@@ -127,13 +127,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         // Create new user
         User user = User.builder()
+                .fullName(registerRequest.getFullName())
                 .username(registerRequest.getUsername())
                 .email(registerRequest.getEmail())
                 .password(passwordEncoder.encode(registerRequest.getPassword()))
                 .status(UserStatus.INACTIVE)
-                .dateOfBirth(registerRequest.getDateOfBirth())
                 .phone(registerRequest.getPhone())
-                .gender(registerRequest.getGender())
                 .type(registerRequest.getType())
                 .build();
 

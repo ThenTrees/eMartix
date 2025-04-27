@@ -1,7 +1,5 @@
 package com.eMartix.authservice.filter;
 
-
-import com.eMartix.authservice.helper.JwtConfig;
 import com.eMartix.authservice.helper.JwtTokenProvider;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -28,8 +26,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    @Value("${jwt.header}")
+    private String HEADER;
+
+    @Value("${jwt.prefix}")
+    private String PREFIX;
+
     private final JwtTokenProvider tokenProvider;
-    private final JwtConfig jwtConfig;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -52,16 +55,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private String getJwtFromRequest(HttpServletRequest request) {
-        String bearerToken = request.getHeader(jwtConfig.getHeader());
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(jwtConfig.getPrefix())) {
-            return bearerToken.substring(jwtConfig.getPrefix().length()).trim();
+        String bearerToken = request.getHeader(HEADER);
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(PREFIX)) {
+            return bearerToken.substring(PREFIX.length()).trim();
         }
         return null;
     }
 
     private boolean isByPass(@NonNull HttpServletRequest request){
-
-
         final List<Pair<String, String>> byPassTokens = Arrays.asList(
                 Pair.of("/login", "POST"),  Pair.of("/register", "POST"));
         String requestPath = request.getServletPath();

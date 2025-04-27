@@ -17,13 +17,8 @@ import java.util.List;
 @Builder
 @Data
 public class UserResponseDto {
-    private String firstName;
 
-    private String lastName;
-
-    private LocalDateTime dateOfBirth;
-
-    private Gender gender;
+    private String fullName;
 
     private String phone;
 

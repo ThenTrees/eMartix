@@ -36,19 +36,7 @@ jwt:
 gateway:
   x-api-key: api-key
 
-eureka:
-  instance:
-    client:
-      serverUrl:
-        defaultZone: http://localhost:8761/eureka/
-
 logging:
   level:
     org:
       springframework.security: DEBUG
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
