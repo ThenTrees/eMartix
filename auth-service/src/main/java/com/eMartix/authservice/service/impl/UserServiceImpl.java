@@ -31,7 +31,6 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RolePermissionRepository rolePermissionRepository;
     private final PasswordEncoder passwordEncoder;
-    private final TokenService tokenService;
     private final UserMapper userMapper;
 
     @Transactional(readOnly = true)
@@ -51,15 +50,12 @@ public class UserServiceImpl implements UserService {
                 .collect(Collectors.toList());
 
         UserResponseDto userResponseDto = new UserResponseDto();
+        userResponseDto.setFullName(user.getFullName());
         userResponseDto.setUsername(user.getUsername());
         userResponseDto.setEmail(user.getEmail());
         userResponseDto.setStatus(user.getStatus());
         userResponseDto.setRoles(roles);
         userResponseDto.setPermissions(permissions);
-        userResponseDto.setFirstName(user.getFirstName());
-        userResponseDto.setLastName(user.getLastName());
-        userResponseDto.setDateOfBirth(user.getDateOfBirth());
-        userResponseDto.setGender(user.getGender());
         userResponseDto.setPhone(user.getPhone());
         userResponseDto.setType(user.getType());
         return userResponseDto;
@@ -112,20 +108,8 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
-        if(updateProfileRequestDto.getFirstName() != null) {
-            user.setFirstName(updateProfileRequestDto.getFirstName());
-        }
-
-        if(updateProfileRequestDto.getLastName() != null) {
-            user.setLastName(updateProfileRequestDto.getLastName());
-        }
-
-        if(updateProfileRequestDto.getDateOfBirth() != null) {
-            user.setDateOfBirth(updateProfileRequestDto.getDateOfBirth());
-        }
-
-        if(updateProfileRequestDto.getGender() != null) {
-            user.setGender(updateProfileRequestDto.getGender());
+        if(updateProfileRequestDto.getFullName() != null) {
+            user.setFullName(updateProfileRequestDto.getFullName());
         }
 
         if(updateProfileRequestDto.getPhone() != null) {
@@ -133,5 +117,4 @@ public class UserServiceImpl implements UserService {
         }
         return userMapper.toUserResponseDto(userRepository.save(user));
     }
-
 }

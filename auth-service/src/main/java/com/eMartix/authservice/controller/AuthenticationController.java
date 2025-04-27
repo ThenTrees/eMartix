@@ -68,14 +68,14 @@ public class AuthenticationController {
     public ResponseEntity<ApiResponse<?>> logout(HttpServletRequest request, HttpServletResponse response) {
         String logoutResponse = authenticationService.logout(request, response);
         return ResponseEntity.status(HttpStatus.NO_CONTENT)
-                .body(
-                    ApiResponse.builder()
-                            .code(HttpStatus.NO_CONTENT.value())
-                            .success(true)
-                            .message("Logout successful")
-                            .response(logoutResponse)
-                            .build()
-                );
+                            .body(
+                                ApiResponse.builder()
+                                        .code(HttpStatus.NO_CONTENT.value())
+                                        .success(true)
+                                        .message("Logout successful")
+                                        .response(logoutResponse)
+                                        .build()
+                            );
     }
 
     @PostMapping("send-verification-otp")

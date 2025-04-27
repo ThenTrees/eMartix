@@ -12,9 +12,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Data
 public class UpdateProfileRequestDto {
-    private String firstName;
-    private String lastName;
+    private String fullName;
     private String phone;
-    private LocalDateTime dateOfBirth;
-    private Gender gender;
 }

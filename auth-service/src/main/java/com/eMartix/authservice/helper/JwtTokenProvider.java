@@ -2,9 +2,9 @@ package com.eMartix.authservice.helper;
 
 import com.eMartix.authservice.service.UserDetailsServiceImpl;
 import io.jsonwebtoken.*;
-import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -12,8 +12,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -24,13 +22,18 @@ import java.util.stream.Collectors;
 @Slf4j
 public class JwtTokenProvider {
 
-    private final JwtConfig jwtConfig;
+    @Value("${jwt.secret}")
+    private String SECRET_KEY;
+
+    @Value("${jwt.expiration}")
+    private long EXPIRATION_TIME = 86400000; // 1 day
+
     private final UserDetailsServiceImpl userDetailsService;
 
     public String generateToken(Authentication authentication) {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtConfig.getExpiration());
+        Date expiryDate = new Date(now.getTime() + EXPIRATION_TIME);
 
         String authorities = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
@@ -41,20 +44,20 @@ public class JwtTokenProvider {
                 .claim("authorities", authorities)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
-                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
+                .signWith(SignatureAlgorithm.HS512, SECRET_KEY)
                 .compact();
     }
 
     public String generateRefreshToken(Authentication authentication) {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtConfig.getExpiration());
+        Date expiryDate = new Date(now.getTime() + EXPIRATION_TIME);
 
         return Jwts.builder()
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
-                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
+                .signWith(SignatureAlgorithm.HS512, SECRET_KEY)
                 .compact();
     }
 
@@ -79,7 +82,7 @@ public class JwtTokenProvider {
     public boolean validateToken(String token) {
         try {
             Jwts.parser()
-                    .setSigningKey(getSigningKey())
+                    .setSigningKey(SECRET_KEY)
                     .build()
                     .parseClaimsJws(token);
             return true;
@@ -92,15 +95,11 @@ public class JwtTokenProvider {
 
     private Claims extractClaims(String token) {
         return Jwts.parser()
-                .setSigningKey(getSigningKey())
+                .setSigningKey(SECRET_KEY)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
     }
 
-    private SecretKey getSigningKey() {
-        byte[] keyBytes = jwtConfig.getSecret().getBytes(StandardCharsets.UTF_8);
-        return Keys.hmacShaKeyFor(keyBytes);
-    }
 
 }

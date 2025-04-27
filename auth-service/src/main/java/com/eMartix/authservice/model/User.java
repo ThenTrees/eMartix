@@ -23,19 +23,8 @@ import java.util.stream.Collectors;
 @Table(name = "tbl_user")
 @ToString
 public class User extends BaseEntity implements UserDetails, Serializable {
-    @Column(name = "first_name")
-    private String firstName;
-
-    @Column(name = "last_name")
-    private String lastName;
-
-    @Column(name = "date_of_birth")
-//    @Temporal(TemporalType.DATE)
-    private LocalDateTime dateOfBirth;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "gender")
-    private Gender gender;
+    @Column(name = "fullname")
+    private String fullName;
 
     @Column(name = "phone")
     private String phone;
