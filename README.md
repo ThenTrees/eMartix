@@ -86,7 +86,7 @@ Infra: Redis, RabbitMQ, Prometheus, Grafana, Zipkin
 ### 1. Clone & Build
 
 ```bash
-git clone https://github.com/YourOrg/eMartix.git
+git clone https://github.com/PhanAnhTuan123/eMartix
 cd eMartix
 mvn clean install -DskipTests
 ```
