@@ -38,16 +38,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 @SpringBootApplication(exclude = {DataSourceAutoConfiguration.class })
 public class CartServiceApplication {
 
-	@Bean
-	public ModelMapper modelMapper(){
-		return new ModelMapper();
-	}
-
-	@Bean
-	public WebClient webClient(){
-		return WebClient.builder().build();
-	}
-
 	public static void main(String[] args) {
 		SpringApplication.run(CartServiceApplication.class, args);
 	}
