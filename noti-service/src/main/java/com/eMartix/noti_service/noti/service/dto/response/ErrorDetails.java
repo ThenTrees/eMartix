@@ -1,7 +1,15 @@
 package com.eMartix.noti_service.noti.service.dto.response;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.util.Date;
 
+@Data
+@NoArgsConstructor
+@Builder
 public class ErrorDetails {
     private Date timeStamp;
     private String message;

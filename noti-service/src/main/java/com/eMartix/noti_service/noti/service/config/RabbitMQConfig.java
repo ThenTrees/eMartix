@@ -1,6 +1,5 @@
 package com.eMartix.noti_service.noti.service.config;
 
-
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.support.converter.MessageConverter;
@@ -8,6 +7,7 @@ import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -19,18 +19,33 @@ public class RabbitMQConfig {
     public static final String EMAIL_EXCHANGE = "emailExchange";
     public static final String EMAIL_ROUTING_KEY = "emailRoutingKey";
 
+    public static final String ORDER_CREATE_EXCHANGE = "order.create.exchange";
+    public static final String ORDER_ROUTING_KEY = "order.created";
+    public static final String NOTIFICATION_QUEUE= "notification.created.queue";
+
     @Bean
+    public DirectExchange orderCreateExchange() {
+        return new DirectExchange(ORDER_CREATE_EXCHANGE, true, false); // Durable = true, không auto-delete
+    }
+
+    // Declare Queues
+    @Bean
+    public Queue notificationQueue() {
+        return new Queue(NOTIFICATION_QUEUE, true, false, false);
+    }
+
+    // Bind Queues to Exchange with Routing Keys
+    @Bean
+    public Binding notificationBinding(@Qualifier("notificationQueue") Queue notificationQueue, DirectExchange orderExchange) {
+        return BindingBuilder.bind(notificationQueue)
+                .to(orderExchange)
+                .with(ORDER_ROUTING_KEY);
+    }
+
+    @Bean(name = "emailQueue")
     public Queue queue() {
         return new Queue(EMAIL_QUEUE); // true = durable
     }
-
-//    @Bean
-//    public Queue handleQueuFail() {
-//        return QueueBuilder.durable("queue-failed")
-//                .withArgument("x-dead-letter-exchange", "dlx-exchange") // DLX
-//                .withArgument("x-dead-letter-routing-key", "dlq") // routing key
-//                .build();
-//    }
 
 
     @Bean
@@ -39,7 +54,7 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Binding binding(Queue queue, TopicExchange exchange) {
+    public Binding binding(@Qualifier("emailQueue") Queue queue, TopicExchange exchange) {
         return BindingBuilder
                 .bind(queue)
                 .to(exchange)
@@ -70,6 +85,4 @@ public class RabbitMQConfig {
         factory.setErrorHandler(t -> log.error("Error in listener: {}", t));
         return factory;
     }
-
-
 }

@@ -1,4 +1,4 @@
-package com.eMartix.noti_service.noti.service.consumer;
+package com.eMartix.noti_service.noti.service.subscribe;
 
 import com.eMartix.noti_service.noti.service.config.RabbitMQConfig;
 import com.eMartix.noti_service.noti.service.dto.model.MailRequestDto;
@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class NotificationSub {
+public class NotificationSubscribe {
 
     private final NotiService notiService;
 
@@ -27,7 +27,7 @@ public class NotificationSub {
 
     @RabbitListener(queues = RabbitMQConfig.NOTIFICATION_QUEUE)
     public void consumeOrderPaid(OrderEventDto orderEventDto) {
-//        notiService.sendEmail();
+        notiService.sendEmail(orderEventDto.getEmail(), "order status is successfully", "Your order with ID: " + orderEventDto.getOrderId() + " has been paid successfully.");
         log.info("Order paid to: {} successfully!", orderEventDto.getOrderId());
     }
 }
