@@ -7,7 +7,7 @@ import com.eMartix.order_service.dto.response.ListOrderDto;
 import com.eMartix.order_service.dto.response.OrderDto;
 
 public interface OrderService {
-    CreateOrderResultDto createOrder(long userId, OrderBasicInfoDto orderBasicInfoDto);
+    CreateOrderResultDto createOrder(Long userId, OrderBasicInfoDto orderBasicInfoDto);
     CreateOrderResultDto captureOrder(long orderId);
     CancelOrderResult cancelCapture(long orderId);
     ListOrderDto getAllOrder(int pageNo, int pageSize, String sortBy, String sortDir);

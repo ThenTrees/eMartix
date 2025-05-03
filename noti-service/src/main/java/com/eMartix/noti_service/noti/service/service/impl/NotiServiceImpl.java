@@ -74,8 +74,8 @@ public class NotiServiceImpl implements NotiService {
         log.info("Notification service - SendMail to {} successfully: ", to);
 
         NotiRequestDto notificationRequest = NotiRequestDto.builder()
-                .title("Send mail to {}"+ to)
-                .message("Send mail to {} successfully"+to)
+                .title("Send mail to "+ to)
+                .message("Send mail to "+ to + "successfully")
                 .build();
         createNotification(notificationRequest);
     }

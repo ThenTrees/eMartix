@@ -1,0 +1,1 @@
+![luồng thực thi của tạo 1 hoá đơn](./images/Sequence_create_order.png)

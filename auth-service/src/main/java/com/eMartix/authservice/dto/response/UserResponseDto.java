@@ -1,6 +1,5 @@
 package com.eMartix.authservice.dto.response;
 
-import com.eMartix.authservice.common.Gender;
 import com.eMartix.authservice.common.UserStatus;
 import com.eMartix.authservice.common.UserType;
 import com.fasterxml.jackson.annotation.JsonIgnore;

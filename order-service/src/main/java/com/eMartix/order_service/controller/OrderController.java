@@ -25,7 +25,7 @@ public class OrderController {
     private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
 
     @PostMapping
-    public ResponseEntity<CreateOrderResultDto> createOrder(@RequestHeader(CustomHeaders.X_AUTH_USER_ID) long userId,
+    public ResponseEntity<CreateOrderResultDto> createOrder(@RequestHeader(CustomHeaders.X_AUTH_USER_ID) Long userId,
                                                             @RequestBody OrderBasicInfoDto orderBasicInfoDto) {
         logger.info("create order with userId: {} and orderBasicInfoDto: {}", userId, orderBasicInfoDto);
         return new ResponseEntity<>(orderService.createOrder(userId, orderBasicInfoDto), HttpStatus.OK);
@@ -33,7 +33,7 @@ public class OrderController {
 
     @PostMapping("/{orderId}")
     public ResponseEntity<CreateOrderResultDto> captureOrder(@PathVariable long orderId) {
-//        TODO handle logic -> Payment method
+        //        TODO handle logic -> Payment method
 
         return ResponseEntity.ok(new CreateOrderResultDto());
     }

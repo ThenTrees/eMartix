@@ -16,22 +16,18 @@ public class NotiMapper {
     private ModelMapper mapper;
 
     public NotiDto mapToDto(Notification notification){
-        NotiDto notiDto = mapper.map(notification, NotiDto.class);
-        return notiDto;
+        return mapper.map(notification, NotiDto.class);
     }
 
     public Notification mapToNotiEntity(NotiRequestDto requestDto){
-        Notification notification = mapper.map(requestDto, Notification.class);
-        return notification;
+        return mapper.map(requestDto, Notification.class);
     }
 
     public NotificationResponse mapToResponseDto(Notification notification){
-        NotificationResponse notiResponseDto = mapper.map(notification, NotificationResponse.class);
-        return notiResponseDto;
+        return mapper.map(notification, NotificationResponse.class);
     }
 
     public Notification mapToResponseEntity(NotiRequestDto notiResponseDto){
-        Notification notification = mapper.map(notiResponseDto, Notification.class);
-        return notification;
+        return mapper.map(notiResponseDto, Notification.class);
     }
 }

@@ -62,7 +62,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                         request.getPassword()
                 )
         );
-
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = tokenProvider.generateToken(authentication);
         String refreshToken = tokenProvider.generateRefreshToken(authentication);
@@ -72,12 +71,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         refreshTokenCookie.setPath("/");       // Gửi trong các yêu cầu tới toàn bộ ứng dụng
         response.addCookie(refreshTokenCookie);
         tokenService.storeTokenWithExpiry(authentication.getName(), jwt, refreshToken);
-
+        log.info("[AuthenticationServiceImpl] User {} logged in successfully", authentication.getName());
         return LoginResponse.builder().accessToken(jwt).refreshToken(refreshToken).build();
-
     }
-
-
     @Override
     public ApiResponse<LoginResponse> createRefreshToken(String token, HttpServletResponse response) {
         // phan giai claims -> lay sub
@@ -97,6 +93,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             response.addCookie(refreshTokenCookie);
             // Lưu Refresh Token mới vào Redis
             tokenService.storeTokenWithExpiry(username, newAccessToken, newRefreshToken);
+            log.info("[AuthenticationServiceImpl] User {} created refresh token", username);
             return ApiResponse.<LoginResponse>builder()
                     .code(HttpStatus.CREATED.value())
                     .message("Refresh token successfully")
@@ -112,16 +109,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public UserResponseDto register(RegisterRequestDto registerRequest) {
         // Check if username is taken
         if (userRepository.existsByUsername(registerRequest.getUsername())) {
+            log.error("[AuthenticationServiceImpl] User {} already exists", registerRequest.getUsername());
             throw new IllegalArgumentException("Username is already taken!");
         }
 
         // Check if email is taken
         if (userRepository.existsByEmail(registerRequest.getEmail())) {
+            log.error("[AuthenticationServiceImpl] Email {} already exists", registerRequest.getEmail());
             throw new IllegalArgumentException("Email is already in use!");
         }
 
         // Check if email is taken
         if (userRepository.existsByPhone(registerRequest.getPhone())) {
+            log.error("[AuthenticationServiceImpl] Phone {} already exists", registerRequest.getPhone());
             throw new IllegalArgumentException("phone is already in use!");
         }
 
@@ -135,9 +135,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .phone(registerRequest.getPhone())
                 .type(registerRequest.getType())
                 .build();
-
         User savedUser = userRepository.save(user);
-
         // Assign roles to user
         List<String> roleNames = registerRequest.getRoles();
         if (roleNames == null || roleNames.isEmpty()) {
@@ -160,6 +158,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 "Welcome to eMartix: Verify your email",
                 "Your OTP code is: " + otp
         );
+        log.info("[AuthenticationServiceImpl] User {} created OTP", savedUser.getUsername());
         mailProducer.sendMail(mailRequest);
         tokenService.saveOtp(user.getEmail(), otp, TimeUnit.MINUTES.toSeconds(10)); // Lưu OTP sống 10 phút
         return userService.getUserDetails(savedUser.getUsername());
@@ -203,11 +202,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String storedOtp = tokenService.getOtp(user.getEmail());
         // check otp
         if (!storedOtp.equals(requestDto.getOtp())) {
+            log.error("[AuthenticationServiceImpl] OTP {} is invalid", requestDto.getOtp());
             throw new IllegalArgumentException("Invalid OTP");
         }else{
             tokenService.deleteOtp(user.getEmail());
             user.setStatus(UserStatus.ACTIVE);
             userRepository.save(user);
+            log.info("[AuthenticationServiceImpl] User {} verified email successfully", user.getUsername());
         }
         return true;
     }
@@ -215,6 +216,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public void sentRequireForgotPassword(ForgotPasswordRequestDto requestDto) {
         if (requestDto.getNewPassword() == null || requestDto.getConfirmPassword() == null || !requestDto.getNewPassword().equals(requestDto.getConfirmPassword())) {
+            log.error("[AuthenticationServiceImpl] Password and confirm password do not match");
             throw new IllegalArgumentException("Password and confirm password do not match");
         }
         String link = generateLink(requestDto.getUsernameOrEmail(), requestDto.getNewPassword());
@@ -225,7 +227,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 "Confirm your password reset request",
                 "Click this link to conform " + link);
         mailProducer.sendMail(mailRequest);
-        log.info("Reset request password for account::: {}", requestDto.getUsernameOrEmail());
+        log.info("[AuthenticationServiceImpl] User {} sent forgot password link", requestDto.getUsernameOrEmail());
     }
 
     @Override
@@ -241,6 +243,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 "Welcome to eMartix: Verify your email",
                 "Your OTP code is: " + otp
         );
+        log.info("[AuthenticationServiceImpl] User {} created OTP", user.getUsername());
         mailProducer.sendMail(mailRequest);
         tokenService.saveOtp(user.getEmail(), otp, TimeUnit.MINUTES.toSeconds(10)); // Lưu OTP sống 10 phút
     }
@@ -255,6 +258,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             tokenService.deleteKey("resetPassword:"+username);
             user.setPassword(passwordEncoder.encode(password));
             userRepository.save(user);
+        }
+        else{
+            log.error("[AuthenticationServiceImpl] User {} verify link failed", username);
+            throw new IllegalArgumentException("Invalid link");
         }
     }
 

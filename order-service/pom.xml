@@ -124,6 +124,12 @@
 			<artifactId>commons</artifactId>
 			<version>1.0-SNAPSHOT</version>
 		</dependency>
+		<!-- Hoặc sử dụng qua spring-boot-starter-amqp 3.x -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-amqp</artifactId>
+			<version>3.4.4</version> <!-- Kiểm tra phiên bản mới nhất -->
+		</dependency>
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>

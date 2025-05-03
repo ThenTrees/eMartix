@@ -1,5 +1,8 @@
 package com.eMartix.gatewayservice.filter;
 
+import com.eMartix.commons.utils.AppContants;
+import com.eMartix.commons.utils.CustomHeaders;
+import com.eMartix.gatewayservice.helper.GenerateRequestId;
 import com.eMartix.gatewayservice.redis.RedisService;
 import io.jsonwebtoken.*;
 import lombok.RequiredArgsConstructor;
@@ -27,27 +30,20 @@ import java.util.stream.Collectors;
 public class JwtAuthenticationFilter implements WebFilter {
 
     private final RedisService redisService;
+    private final GenerateRequestId generateRequestId;
 
     @Value("${jwt.secret}")
     private String SECRET_KEY;
-
-    @Value("${gateway.x-api-key}")
-    private String X_API_KEY;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         // Lấy đường dẫn của request
         String path = exchange.getRequest().getPath().toString();
-
         if (isAuthRequest(exchange)) {
             // Bypass nhưng vẫn set một security context rỗng để Spring Security không chặn
-            SecurityContext context = SecurityContextHolder.createEmptyContext();
-            context.setAuthentication(new UsernamePasswordAuthenticationToken("anonymous", null, Collections.emptyList()));
-            return chain.filter(exchange)
-                    .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(context)));
+            return setSecurityContextAndContinueWithoutToken(exchange, chain);
         }
         String token = extractJwtFromRequest(exchange);
-
 
         if (token == null || !isValidToken(token)) {
             return Mono.error(new JwtException("Invalid or missing JWT token"));
@@ -55,12 +51,12 @@ public class JwtAuthenticationFilter implements WebFilter {
 
         // check token is exist in redis
         Claims claims = extractClaims(token);
-        if (!redisService.checkExistToken(claims.getSubject(), token)){
+        if (!redisService.checkExistToken(claims.get("username").toString(), token)){
             return Mono.error(new JwtException("Token not found in redis"));
         }
         List<SimpleGrantedAuthority> authorities = extractAuthoritiesFromClaims(claims);
         Authentication authentication = createAuthentication(claims, authorities);
-        return setSecurityContextAndContinue(exchange, chain, authentication, token);
+        return setSecurityContextAndContinue(exchange, chain, authentication, token, claims.getSubject());
     }
 
     private boolean isAuthRequest(ServerWebExchange exchange) {
@@ -110,28 +106,44 @@ public class JwtAuthenticationFilter implements WebFilter {
         return new UsernamePasswordAuthenticationToken(claims.getSubject(), null, authorities);
     }
 
-    private Mono<Void> setSecurityContextAndContinue(ServerWebExchange exchange, WebFilterChain chain, Authentication authentication, String token) {
+    private Mono<Void> setSecurityContextAndContinue(ServerWebExchange exchange, WebFilterChain chain, Authentication authentication, String token, String userId) {
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
         securityContext.setAuthentication(authentication);
         SecurityContextHolder.setContext(securityContext);
 
         // Tạo request mới với các header bổ sung
         ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
-                .header("Authorization", "Bearer " + token)
-                .header("X-API-KEY", X_API_KEY)
+                .header(CustomHeaders.AUTHENTICATION, "Bearer " + token)
+                .header(CustomHeaders.X_API_KEY, AppContants.X_API_KEY)
+                .header(CustomHeaders.X_REQUEST_ID, generateRequestId.generateRequestId())
+                .header(CustomHeaders.X_AUTH_USER_AUTHORITIES, String.valueOf(authentication.getAuthorities()))
+                .header(CustomHeaders.X_AUTH_USER_ID, userId)
                 .build();
-
         // Tạo exchange mới với request đã mutate
         ServerWebExchange mutatedExchange = exchange.mutate()
                 .request(mutatedRequest)
                 .build();
-
         return chain.filter(mutatedExchange)
                 .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(securityContext)));
+    }
 
+    private Mono<Void> setSecurityContextAndContinueWithoutToken(ServerWebExchange exchange, WebFilterChain chain) {
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(new UsernamePasswordAuthenticationToken("anonymous", null, Collections.emptyList()));
 
-        // Tiếp tục xử lý request với mutatedExchange
-//        return chain.filter(mutatedExchange);
+        // Tạo request mới với các header bổ sung
+        ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
+                .header(CustomHeaders.X_API_KEY, AppContants.X_API_KEY)
+                .header(CustomHeaders.X_REQUEST_ID, generateRequestId.generateRequestId())
+                .header(CustomHeaders.X_AUTH_USER_AUTHORITIES, String.valueOf(context.getAuthentication().getAuthorities()))
+                .header(CustomHeaders.X_AUTH_USER_ID, "")
+                .build();
+        // Tạo exchange mới với request đã mutate
+        ServerWebExchange mutatedExchange = exchange.mutate()
+                .request(mutatedRequest)
+                .build();
+        return chain.filter(mutatedExchange)
+                .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(context)));
     }
 
     private static final List<String> WHITE_LIST = Arrays.asList(
@@ -149,6 +161,8 @@ public class JwtAuthenticationFilter implements WebFilter {
             // categories
             "/api/v1/categories",
             "/api/v1/categories/{categoryId}",
-            "/api/v1/categories/search"
+            "/api/v1/categories/search",
+            // actuator
+            "/actuator/**"
     );
 }
