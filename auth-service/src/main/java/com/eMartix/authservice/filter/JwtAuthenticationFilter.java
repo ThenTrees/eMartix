@@ -1,6 +1,7 @@
 package com.eMartix.authservice.filter;
 
 import com.eMartix.authservice.helper.JwtTokenProvider;
+import com.eMartix.commons.utils.CustomHeaders;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -26,9 +27,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    @Value("${jwt.header}")
-    private String HEADER;
-
     @Value("${jwt.prefix}")
     private String PREFIX;
 
@@ -50,12 +48,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } catch (Exception ex) {
             log.error("Could not set user authentication in security context", ex);
         }
-
         filterChain.doFilter(request, response);
     }
 
     private String getJwtFromRequest(HttpServletRequest request) {
-        String bearerToken = request.getHeader(HEADER);
+        String bearerToken = request.getHeader(CustomHeaders.AUTHENTICATION);
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(PREFIX)) {
             return bearerToken.substring(PREFIX.length()).trim();
         }

@@ -1,5 +1,6 @@
 package com.eMartix.authservice.helper;
 
+import com.eMartix.authservice.model.User;
 import com.eMartix.authservice.service.UserDetailsServiceImpl;
 import io.jsonwebtoken.*;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +32,7 @@ public class JwtTokenProvider {
     private final UserDetailsServiceImpl userDetailsService;
 
     public String generateToken(Authentication authentication) {
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        User userDetails = (User) authentication.getPrincipal();
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + EXPIRATION_TIME);
 
@@ -40,8 +41,9 @@ public class JwtTokenProvider {
                 .collect(Collectors.joining(","));
 
         return Jwts.builder()
-                .setSubject(userDetails.getUsername())
+                .setSubject(String.valueOf(userDetails.getId()))
                 .claim("authorities", authorities)
+                .claim("username", userDetails.getUsername())
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(SignatureAlgorithm.HS512, SECRET_KEY)
@@ -49,12 +51,12 @@ public class JwtTokenProvider {
     }
 
     public String generateRefreshToken(Authentication authentication) {
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        User userDetails = (User) authentication.getPrincipal();
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + EXPIRATION_TIME);
 
         return Jwts.builder()
-                .setSubject(userDetails.getUsername())
+                .setSubject(userDetails.getId().toString())
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(SignatureAlgorithm.HS512, SECRET_KEY)
@@ -70,13 +72,13 @@ public class JwtTokenProvider {
                         .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toList());
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(claims.getSubject());
+        UserDetails userDetails = userDetailsService.loadUserByUsername(claims.get("username").toString());
 
         return new UsernamePasswordAuthenticationToken(userDetails, "", authorities);
     }
 
     public String getUsernameFromToken(String token) {
-        return extractClaims(token).getSubject();
+        return extractClaims(token).get("username").toString();
     }
 
     public boolean validateToken(String token) {
@@ -100,6 +102,4 @@ public class JwtTokenProvider {
                 .parseClaimsJws(token)
                 .getBody();
     }
-
-
 }
