@@ -1,10 +1,9 @@
 package com.eMartix.gatewayservice.config;
 
+import com.eMartix.commons.utils.AppContants;
 import com.eMartix.gatewayservice.filter.CustomRetryGatewayFilterFactory;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter;
 import org.springframework.cloud.gateway.route.RouteLocator;
@@ -16,26 +15,16 @@ import org.springframework.http.HttpStatus;
 import java.time.Duration;
 
 @Configuration
-//@RequiredArgsConstructor
 public class EnhancedGatewayConfig {
 
-    @Value("${gateway.x-api-key}")
-    private String apiKey;
 
     private final CustomRetryGatewayFilterFactory retryGatewayFilterFactory;
 
-//    @Qualifier("ipKeyResolver")
-
     private final KeyResolver ipKeyResolver;
-//    @Qualifier("productApiRateLimiter")
     private final RedisRateLimiter productRateLimiter;
-//    @Qualifier("cartApiRateLimiter")
     private final RedisRateLimiter cartRateLimiter;
-//    @Qualifier("orderApiRateLimiter")
     private final RedisRateLimiter orderRateLimiter;
-//    @Qualifier("authApiRateLimiter")
     private final RedisRateLimiter authRateLimiter;
-//    @Qualifier("defaultRateLimiter")
     private final RedisRateLimiter defaultRateLimiter;
 
     @Autowired
@@ -138,7 +127,6 @@ public class EnhancedGatewayConfig {
                 .route("AUTH-SERVICE", r -> r
                         .path("/api/v1/auth/**")
                         .filters(f -> f
-                                .addRequestHeader("X-API-KEY", apiKey)
                                 .rewritePath("/api/v1/auth/(?<segment>.*)", "/${segment}")
                                 // Áp dụng Rate Limiting
                                 .requestRateLimiter(config -> config

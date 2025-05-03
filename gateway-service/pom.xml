@@ -31,9 +31,12 @@
 		<spring-cloud.version>2024.0.0</spring-cloud.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
-	<dependencies>
-
-		<!-- Spring Cloud Circuit Breaker + Resilience4j cho WebFlux -->
+	<dependencies><!-- Spring Cloud Circuit Breaker + Resilience4j cho WebFlux -->
+		<dependency>
+			<groupId>com.eMartix</groupId>
+			<artifactId>commons</artifactId>
+			<version>1.0-SNAPSHOT</version>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
